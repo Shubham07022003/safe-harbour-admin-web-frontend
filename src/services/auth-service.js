@@ -1,3 +1,4 @@
+import { asyncHandler } from "../utils/async-handler";
 import { apiClient } from "./api-client";
 
 export async function login(email, password) {
@@ -21,3 +22,60 @@ export async function login(email, password) {
     };
   }
 }
+
+
+//temporary use of adminLogin endpoint with dummy password to check if email belongs to an admin user
+export const checkAdminEmail = asyncHandler(async (email) => {
+  try {
+    await api.post('/api/user/adminlogin', {
+      email,
+      Password: "verification_Dummy_pass"
+    });
+    //just in case the dummy password is correct
+    return { isAdmin: true, exists: true };
+
+  } catch (error) {
+    const status = error.response?.status;
+
+    if (status === 402) {
+      // User exists, but NOT Admin
+      throw new Error("Access Denied: This email belongs to a non-admin account.");
+    }
+
+    if (status === 404) {
+      // "User not found"
+      throw new Error("No admin account found with this email.");
+    }
+
+    if (status === 400) {
+      // "Email or password incorrect" -> User Exists AND IS Admin
+      return { isAdmin: true, exists: true };
+    }
+
+    throw error;
+  }
+});
+
+// SEND OTP 
+export const sendAdminPasswordOtp = asyncHandler(async (email) => {
+
+  const res = await api.post('/api/user/passwordresetotp', { Email: email });
+  return res.data;
+});
+
+// VERIFY OTP
+export const verifyAdminPasswordOtp = asyncHandler(async (email, otp) => {
+
+  const res = await api.post('/api/user/verifypasswordotp', { email, otp });
+  return res.data;
+});
+
+// RESET PASSWORD
+export const resetAdminPassword = asyncHandler(async (email, newPassword) => {
+
+  const res = await api.post('/api/user/resetpassword', {
+    Email: email,
+    newPassword
+  });
+  return res.data;
+});
